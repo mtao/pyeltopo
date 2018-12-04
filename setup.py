@@ -7,6 +7,7 @@ import subprocess
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
+import setuptools.command.build_py
 
 
 class CMakeExtension(Extension):
@@ -36,7 +37,7 @@ class CMakeBuild(build_ext):
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
-        cfg = 'Debug' if self.debug else 'Release'
+        cfg = 'Release'
         build_args = ['--config', cfg]
 
         if platform.system() == "Windows":
@@ -56,6 +57,15 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
+
+try:
+    print(subprocess.check_output('git submodule update --recursive --init'.split()))
+except OSError:
+    print("Could not update/pull submodules!")
+    exit(1)
+
+
+
 setup(
     name='pyeltopo',
     version='0.0.1',
@@ -66,5 +76,4 @@ setup(
     ext_modules=[CMakeExtension('pyeltopo')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    debug=False
 )
