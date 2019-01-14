@@ -59,9 +59,15 @@ class CMakeBuild(build_ext):
 
 
 try:
+    retcode = subprocess.call('git rev-parse'.split())
+    if retcode != 0:
+        print(subprocess.check_output('git clone --bare https://github.com/mtao/pyeltopo .git'.split()))
+        print(subprocess.check_output('git config --local --bool core.bare false'.split()))
+        print(subprocess.check_output('git checkout HEAD -f'.split()))
     print(subprocess.check_output('git submodule update --recursive --init'.split()))
-except OSError:
+except OSError as e:
     print("Could not update/pull submodules!")
+    print(e)
     exit(1)
 
 with open("README.md", "r") as fh:
@@ -70,7 +76,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='pyeltopo',
-    version='0.0.1',
+    version='0.0.2',
     author='Michael Tao',
     author_email='mtao@cs.toronto.edu',
     description='El Topo bindings using pybind11',
