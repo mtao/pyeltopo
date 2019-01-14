@@ -64,16 +64,25 @@ except OSError:
     print("Could not update/pull submodules!")
     exit(1)
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 
 setup(
     name='pyeltopo',
     version='0.0.1',
     author='Michael Tao',
-    author_email='mtao@dgp.toronto.edu',
+    author_email='mtao@cs.toronto.edu',
     description='El Topo bindings using pybind11',
-    long_description='',
+    long_description=long_description,
     ext_modules=[CMakeExtension('pyeltopo')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
+    url="https://github.com/mtao/pyeltopo",
+    classifiers=[
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        ],
 )
