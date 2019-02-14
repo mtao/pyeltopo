@@ -76,7 +76,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='pyeltopo',
-    version='0.0.2',
+    version='0.0.3',
     author='Michael Tao',
     author_email='mtao@cs.toronto.edu',
     description='El Topo bindings using pybind11',

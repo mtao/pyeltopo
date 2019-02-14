@@ -7,7 +7,7 @@
 
 
 
-ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collision_safety, bool defrag_mesh, bool verbose): m_defrag_mesh(defrag_mesh), m_verbose(verbose) {
+ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collision_safety, bool defrag_mesh, bool verbose, bool do_initialize): m_defrag_mesh(defrag_mesh), m_verbose(verbose) {
 
     if(m_verbose) std::cout << "Starting constructor!" << std::endl;
 
@@ -25,6 +25,7 @@ ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collisio
     m_init_params.m_allow_topology_changes=false;
     m_init_params.m_allow_non_manifold=false;
     m_init_params.m_collision_safety=collision_safety;
+    m_init_params.m_allow_vertex_movement=true;
 
 
     m_subdivision_scheme.reset(new ButterflyScheme());
@@ -32,9 +33,9 @@ ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collisio
     if(m_verbose) std::cout << "Made initial parameters" << std::endl;
 
 
-    std::vector<Vec3st> tris(F.cols());
-    std::vector<Vec3d> verts(V.cols());
-    std::vector<double> masses(V.cols());
+   tris.resize(F.cols());
+   verts.resize(V.cols());
+   masses.resize(V.cols());
 
     for(size_t i = 0; i < verts.size(); ++i) {
         Eigen::Map<EigenVec3d> v(&verts[i][0]);
@@ -44,15 +45,35 @@ ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collisio
         Eigen::Map<Eigen::Matrix<size_t,3,1>> t(&tris[i][0]);
             t = F.col(i).cast<size_t>();
     }
-
     if(m_verbose) std::cout << "Making volumes!" << std::endl;
 
     auto dv = dual_volumes(V,F);
     Eigen::Map<Eigen::VectorXd>(masses.data(),masses.size()) = dv;
 
+    if(do_initialize) {
+    initialize();
+    }
+    if(m_verbose) std::cout << "Finished constructor!" << std::endl;
+
+}
+
+ElTopoTracker::~ElTopoTracker() {
+}
+void ElTopoTracker::initialize() {
+
     if(m_verbose) std::cout << "Making surface!" << std::endl;
+    if(m_surf) {
+        masses = m_surf->m_masses;
+        verts = m_surf->get_positions();
+        tris = m_surf->m_mesh.get_triangles();
+    }
 
     m_surf = std::unique_ptr<SurfTrack>(new SurfTrack(verts,tris,masses,m_init_params));
+    {
+        std::vector<size_t> tmp; 
+        m_surf->trim_non_manifold(tmp);
+        if(m_verbose) std::cout << "Trimmed " << tmp.size() << "triangles for being non-manifold";
+    }
 
     if(m_verbose) std::cout << "Defrag time!" << std::endl;
 
@@ -64,11 +85,7 @@ ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collisio
     {
         m_surf->m_collision_pipeline.assert_mesh_is_intersection_free( false );      
     }
-    if(m_verbose) std::cout << "Finished constructor!" << std::endl;
 
-}
-
-ElTopoTracker::~ElTopoTracker() {
 }
 
 auto ElTopoTracker::get_mesh() const -> std::tuple<ColVectors3d,ColVectors3i>{
@@ -84,11 +101,11 @@ auto ElTopoTracker::get_vertices() const ->ColVectors3d {
     if(m_defrag_mesh && m_defrag_dirty) {
         const_cast<ElTopoTracker*>(this)->defrag_mesh();
     }
-    auto&& pos = m_surf->get_positions();
-    assert(pos.size() == m_surf->get_num_vertices());
-    ColVectors3d V(3,pos.size());
-    for(size_t i = 0; i < pos.size(); ++i) {
-        V.col(i) = Eigen::Map<const EigenVec3d>(&pos[i][0]);
+    const_cast<std::vector<Vec3d>&>(verts) = m_surf->get_positions();
+    assert(verts.size() == m_surf->get_num_vertices());
+    ColVectors3d V(3,verts.size());
+    for(size_t i = 0; i < verts.size(); ++i) {
+        V.col(i) = Eigen::Map<const EigenVec3d>(&verts[i][0]);
     }
     return V;
 }
@@ -98,7 +115,7 @@ auto ElTopoTracker::get_triangles() const -> ColVectors3i {
 
         const_cast<ElTopoTracker*>(this)->defrag_mesh();
     }
-    auto&& tris = m_surf->m_mesh.get_triangles();
+    const_cast<std::vector<Vec3st>&>(tris) = m_surf->m_mesh.get_triangles();
     ColVectors3i F(3,tris.size());
     for(size_t i = 0; i < tris.size(); ++i) {
         auto& t = tris[i];

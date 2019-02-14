@@ -24,7 +24,7 @@ class ElTopoTracker {
         using CRefCV3i = Eigen::Ref<const ColVectors3i>;
         ElTopoTracker& operator=(ElTopoTracker&&) = default;
         ~ElTopoTracker();
-        ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collision_safety=true, bool defrag_mesh = true, bool verbose = false);
+        ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collision_safety=true, bool defrag_mesh = true, bool verbose = false, bool do_initialize=true);
         static Eigen::VectorXd dual_volumes(const CRefCV3d& V, const CRefCV3i& F);
 
         void split_edge(size_t edge_index);
@@ -54,6 +54,9 @@ class ElTopoTracker {
         bool m_verbose = false;
         bool m_defrag_mesh = false;
     private:
+        std::vector<Vec3st> tris;
+        std::vector<Vec3d> verts;
+        std::vector<double> masses;
         std::unique_ptr<SurfTrack> m_surf = nullptr;
         std::unique_ptr<SubdivisionScheme> m_subdivision_scheme;
         bool m_defrag_dirty = false;
