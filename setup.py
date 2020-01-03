@@ -3,6 +3,8 @@ import re
 import sys
 import platform
 import subprocess
+import multiprocessing
+
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -47,7 +49,7 @@ class CMakeBuild(build_ext):
             build_args += ['--', '/m']
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            build_args += ['--', '-j4']
+            build_args += ['--', '-j{}'.format(multiprocessing.cpu_count()-1)]
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''),
@@ -58,17 +60,6 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
-try:
-    retcode = subprocess.call('git rev-parse'.split())
-    if retcode != 0:
-        print(subprocess.check_output('git clone --bare https://github.com/mtao/pyeltopo .git'.split()))
-        print(subprocess.check_output('git config --local --bool core.bare false'.split()))
-        print(subprocess.check_output('git checkout HEAD -f'.split()))
-    print(subprocess.check_output('git submodule update --recursive --init'.split()))
-except OSError as e:
-    print("Could not update/pull submodules!")
-    print(e)
-    exit(1)
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -76,7 +67,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='pyeltopo',
-    version='0.0.3',
+    version='0.0.4',
     author='Michael Tao',
     author_email='mtao@cs.toronto.edu',
     description='El Topo bindings using pybind11',

@@ -28,8 +28,9 @@ ElTopoTracker::ElTopoTracker(const CRefCV3d& V, const CRefCV3i& F, bool collisio
     m_init_params.m_allow_vertex_movement=true;
 
 
+    //TODO: recall why i need m_subdivision_scheme when m_init_pararms knows about it
     m_subdivision_scheme.reset(new ButterflyScheme());
-    m_init_params.m_subdivision_scheme=m_subdivision_scheme.get();
+    m_init_params.m_subdivision_scheme.reset(new ButterflyScheme());
     if(m_verbose) std::cout << "Made initial parameters" << std::endl;
 
 
